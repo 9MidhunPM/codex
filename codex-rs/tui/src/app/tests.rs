@@ -2682,6 +2682,7 @@ async fn open_agent_picker_selects_path_backed_agent() -> Result<()> {
             main.to_string(),
             "turn-1".to_string(),
             ThreadItemPayload::SubAgentActivity {
+                message: None,
                 id: "activity".to_string(),
                 kind: codex_app_server_protocol::SubAgentActivityKind::Started,
                 agent_thread_id: waiting.to_string(),

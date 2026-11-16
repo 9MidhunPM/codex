@@ -467,6 +467,7 @@ async fn migration_projects_explicit_and_implicit_legacy_completed_items() {
             "agent_path": "/root/worker",
         });
         if let Some(model) = model {
+            payload["message"] = json!("inspect the repository");
             payload["model"] = json!(model);
             payload["reasoning_effort"] = json!("high");
         }
@@ -532,17 +533,21 @@ async fn migration_projects_explicit_and_implicit_legacy_completed_items() {
     assert_eq!(reasoning["content"], json!(["raw"]));
     for (item, model) in items.items[1..3].iter().zip([None, Some("gpt-5")]) {
         assert_eq!(item.turn_id, "explicit");
+        let mut expected = json!({
+            "type": "subAgentActivity",
+            "id": if model.is_some() { "spawn" } else { "old-spawn" },
+            "kind": "started",
+            "agentThreadId": child_id,
+            "agentPath": "/root/worker",
+            "model": model,
+            "reasoningEffort": model.map(|_| "high"),
+        });
+        if model.is_some() {
+            expected["message"] = json!("inspect the repository");
+        }
         assert_eq!(
             serde_json::from_slice::<serde_json::Value>(&item.item_json).unwrap(),
-            json!({
-                "type": "subAgentActivity",
-                "id": if model.is_some() { "spawn" } else { "old-spawn" },
-                "kind": "started",
-                "agentThreadId": child_id,
-                "agentPath": "/root/worker",
-                "model": model,
-                "reasoningEffort": model.map(|_| "high"),
-            })
+            expected,
         );
     }
 }

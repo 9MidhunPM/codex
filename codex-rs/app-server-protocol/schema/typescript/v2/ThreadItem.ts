@@ -140,6 +140,10 @@ reasoningEffort: ReasoningEffort | null,
  */
 agentsStates: { [key in string]?: CollabAgentState }, } | { "type": "subAgentActivity",
 /**
+ * Plaintext instruction for a start or interaction; absent for encrypted messages.
+ */
+message?: string,
+/**
  * Resolved model at sub-agent creation; absent from older records and other activities.
  */
 model: string | null,

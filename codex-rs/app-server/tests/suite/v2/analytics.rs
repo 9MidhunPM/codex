@@ -464,8 +464,10 @@ async fn guardian_review_turns_and_tools_reach_analytics() -> Result<()> {
     Ok(())
 }
 
+#[test_case::test_case(true; "plaintext")]
+#[test_case::test_case(false; "encrypted")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn multi_agent_v2_tools_emit_collaborator_analytics() -> Result<()> {
+async fn multi_agent_v2_tools_emit_collaborator_analytics(plaintext: bool) -> Result<()> {
     const PARENT_PROMPT: &str = "exercise collaborator analytics";
     const READ_TIMEOUT: Duration = Duration::from_secs(30);
     let calls = [
@@ -498,6 +500,15 @@ async fn multi_agent_v2_tools_emit_collaborator_analytics() -> Result<()> {
     let server = responses::start_mock_server().await;
     for (index, (tool, args)) in calls.iter().enumerate() {
         let response_id = format!("parent-response-{index}");
+        let mut call = responses::ev_function_call_with_namespace(
+            &format!("call-{index}"),
+            "collaboration",
+            tool,
+            &args.to_string(),
+        );
+        if plaintext {
+            call["item"]["encrypted_function_args"] = json!([]);
+        }
         responses::mount_sse_once_match(
             &server,
             |request: &wiremock::Request| {
@@ -505,12 +516,7 @@ async fn multi_agent_v2_tools_emit_collaborator_analytics() -> Result<()> {
             },
             responses::sse(vec![
                 responses::ev_response_created(&response_id),
-                responses::ev_function_call_with_namespace(
-                    &format!("call-{index}"),
-                    "collaboration",
-                    tool,
-                    &args.to_string(),
-                ),
+                call,
                 responses::ev_completed(&response_id),
             ]),
         )
@@ -597,6 +603,34 @@ async fn multi_agent_v2_tools_emit_collaborator_analytics() -> Result<()> {
         })
         .collect::<Vec<_>>();
     assert_eq!(activity_ids, vec!["call-0", "call-1", "call-2", "call-3"]);
+    // The ordinary public stream and persisted thread history expose the same
+    // plaintext instructions, without requiring experimentalRawEvents.
+    for (index, (_, args)) in calls.iter().take(3).enumerate() {
+        let call_id = format!("call-{index}");
+        let notification = app_server
+            .read_stream_until_matching_notification("collaboration activity", |notification| {
+                notification.method == "item/completed"
+                    && notification.params.as_ref().is_some_and(|params| {
+                        params["threadId"] == thread.id && params["item"]["id"] == call_id
+                    })
+            })
+            .await?;
+        let activity: ItemCompletedNotification =
+            serde_json::from_value(notification.params.expect("activity params"))?;
+        let expected_message = plaintext.then(|| args["message"].as_str().unwrap().to_string());
+        let ThreadItemPayload::SubAgentActivity { message, .. } = &activity.item.payload else {
+            panic!("expected subagent activity");
+        };
+        assert_eq!(message, &expected_message);
+        assert_eq!(
+            &activity.item.payload,
+            &items
+                .iter()
+                .find(|item| item.payload.id() == call_id)
+                .expect("persisted activity")
+                .payload,
+        );
+    }
 
     for (index, (tool, _)) in calls.iter().enumerate() {
         let event = wait_for_matching_analytics_event(&server, READ_TIMEOUT, |event| {

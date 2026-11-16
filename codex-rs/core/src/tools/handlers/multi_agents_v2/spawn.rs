@@ -115,6 +115,8 @@ async fn handle_spawn_agent(
     let args: SpawnAgentArgs = parse_arguments(&arguments)?;
     let fork_mode = args.fork_mode()?;
     let message = message_content(args.message)?;
+    let message = agent_message_from_tool(message, &source);
+    let activity_message = message_for_activity(&message);
     let role_name = args
         .agent_type
         .as_deref()
@@ -127,7 +129,7 @@ async fn handle_spawn_agent(
         &call_id,
         ThreadSpawnRequest {
             task_name: args.task_name,
-            message: agent_message_from_tool(message, &source),
+            message,
             fork_mode: fork_mode.clone(),
             agent_type: args.agent_type.clone(),
             model: args.model,
@@ -163,6 +165,7 @@ async fn handle_spawn_agent(
         &session,
         turn,
         SubAgentActivityItem {
+            message: activity_message,
             model: Some(agent_snapshot.model.clone()),
             reasoning_effort: agent_snapshot.reasoning_effort.clone(),
             id: call_id,

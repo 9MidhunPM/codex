@@ -24444,6 +24444,13 @@
               "kind": {
                 "$ref": "#/definitions/v2/SubAgentActivityKind"
               },
+              "message": {
+                "description": "Plaintext instruction for a start or interaction; absent for encrypted messages.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "model": {
                 "description": "Resolved model at sub-agent creation; absent from older records and other activities.",
                 "type": [

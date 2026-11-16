@@ -3597,6 +3597,7 @@ fn core_turn_item_into_thread_item_converts_supported_variants() {
     );
 
     let sub_agent_activity_item = TurnItem::SubAgentActivity(SubAgentActivityItem {
+        message: Some("inspect the repository".into()),
         model: Some("gpt-5".into()),
         reasoning_effort: Some(ReasoningEffort::High),
         id: "activity-1".to_string(),
@@ -3610,6 +3611,7 @@ fn core_turn_item_into_thread_item_converts_supported_variants() {
     assert_eq!(
         ThreadItemPayload::from(sub_agent_activity_item),
         ThreadItemPayload::SubAgentActivity {
+            message: Some("inspect the repository".into()),
             model: Some("gpt-5".into()),
             reasoning_effort: Some(ReasoningEffort::High),
             id: "activity-1".to_string(),
@@ -3634,6 +3636,13 @@ fn core_turn_item_into_thread_item_converts_supported_variants() {
         "agentPath": "/root/worker",
     }))
     .unwrap();
+    assert_eq!(old_activity.message, None);
+    assert!(
+        serde_json::to_value(&old_wire_activity)
+            .unwrap()
+            .get("message")
+            .is_none()
+    );
     assert_eq!(
         ThreadItemPayload::from(TurnItem::SubAgentActivity(old_activity)),
         old_wire_activity

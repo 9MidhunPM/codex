@@ -1199,6 +1199,7 @@ impl ThreadHistoryBuilder {
         payload: &codex_protocol::protocol::SubAgentActivityEvent,
     ) {
         let item = ThreadItemPayload::SubAgentActivity {
+            message: payload.message.clone(),
             model: payload.model.clone(),
             reasoning_effort: payload.reasoning_effort.clone(),
             id: payload.event_id.clone(),
@@ -5632,6 +5633,7 @@ mod tests {
             thread_id: ThreadId::new(),
             turn_id: "turn-a".into(),
             item: CoreTurnItem::SubAgentActivity(CoreSubAgentActivityItem {
+                message: Some("inspect the repository".into()),
                 model: Some("gpt-5".into()),
                 reasoning_effort: Some(codex_protocol::openai_models::ReasoningEffort::High),
                 id: "spawn-child".into(),
@@ -5683,6 +5685,7 @@ mod tests {
                     thread_id: ThreadId::new(),
                     turn_id: "turn-a".into(),
                     item: CoreTurnItem::SubAgentActivity(CoreSubAgentActivityItem {
+                        message: None,
                         model: None,
                         reasoning_effort: None,
                         id: "child-turn-completed".into(),
@@ -5703,6 +5706,7 @@ mod tests {
                 [
                     &expected_spawn,
                     &ThreadItemPayload::SubAgentActivity {
+                        message: None,
                         model: None,
                         reasoning_effort: None,
                         id: "child-turn-completed".into(),

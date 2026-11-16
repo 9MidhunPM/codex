@@ -65,3 +65,11 @@ fn agent_message_from_tool(
         AgentMessage::Encrypted(message)
     }
 }
+
+/// Expose only instructions that are already plaintext at the tool boundary.
+fn message_for_activity(message: &AgentMessage) -> Option<String> {
+    match message {
+        AgentMessage::Plaintext(message) => Some(message.clone()),
+        AgentMessage::Encrypted(_) => None,
+    }
+}

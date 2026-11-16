@@ -5899,6 +5899,12 @@ class SubAgentActivityThreadItem(BaseModel):
     ] = None
     id: str
     kind: SubAgentActivityKind
+    message: Annotated[
+        str | None,
+        Field(
+            description="Plaintext instruction for a start or interaction; absent for encrypted messages."
+        ),
+    ] = None
     model: Annotated[
         str | None,
         Field(
